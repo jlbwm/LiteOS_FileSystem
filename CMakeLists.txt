@@ -12,7 +12,6 @@ add_library(back_store SHARED src/block_store.c)
 add_library(dyn_array SHARED src/dyn_array.c)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS} include)
-# add -DENABLE_MOVE to the CXX flags to activate move tests
 set(SHARED_FLAGS " -Wall -Wextra -Wshadow -Werror -g -D_POSIX_C_SOURCE=200809L")
 set(CMAKE_CXX_FLAGS "-std=c++11 ${SHARED_FLAGS}")
 set(CMAKE_C_FLAGS "-std=c99 ${SHARED_FLAGS}")
