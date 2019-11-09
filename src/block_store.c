@@ -58,16 +58,17 @@ block_store_t *block_store_init(const bool init, const char *const fname) {
             if (bs->fd != -1) {
                 bs->data_blocks = (uint8_t *) mmap(NULL, BLOCK_STORE_NUM_BYTES, PROT_READ | PROT_WRITE, MAP_SHARED, bs->fd, 0);
                 if (bs->data_blocks != (uint8_t *) MAP_FAILED) {
-                         if (init) {
-                                memset(bs->data_blocks, 0X00, BLOCK_STORE_NUM_BYTES);
-								                bs->data_blocks[BLOCK_STORE_NUM_BYTES - 1] = 0xff;
-								                // in case you are trying to write to the bitmap, that will be a disaster
-                          }
-                          bs->fbm = bitmap_overlay(BLOCK_STORE_AVAIL_BLOCKS, bs->data_blocks + BLOCK_STORE_AVAIL_BLOCKS*BLOCK_SIZE_BYTES);
-                          if (bs->fbm) {
-                                return bs;
-                           }
-                           munmap(bs->data_blocks, BLOCK_STORE_NUM_BYTES);
+                    if (init) {
+                        memset(bs->data_blocks, 0X00, BLOCK_STORE_NUM_BYTES);
+                        bs->data_blocks[BLOCK_STORE_NUM_BYTES - 1] = 0xff;
+                        // set the last byte in data_blocks Oxff
+                        // in case you are trying to write to the bitmap, that will be a disaster
+                    }
+                    bs->fbm = bitmap_overlay(BLOCK_STORE_AVAIL_BLOCKS, bs->data_blocks + BLOCK_STORE_AVAIL_BLOCKS*BLOCK_SIZE_BYTES);
+                    if (bs->fbm) {
+                        return bs;
+                    }
+                    munmap(bs->data_blocks, BLOCK_STORE_NUM_BYTES);
                 }
                 close(bs->fd);
             }
@@ -249,6 +250,7 @@ block_store_t *block_store_deserialize(const char *const filename) {
         }
         block_store_t *bs = NULL;
         bs = block_store_create(filename);
+        // create a empty block store and then fill it by reading from giveing file
         int df_read1, df_read2;
         df_read1 = read(fd, bs->data_blocks, BLOCK_STORE_AVAIL_BLOCKS*BLOCK_SIZE_BYTES); // read bs->Data from the file
         df_read2 = read(fd, bs->fbm, BLOCK_STORE_NUM_BLOCKS/8); // read bs->FBM from the file

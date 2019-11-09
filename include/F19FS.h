@@ -24,11 +24,12 @@ typedef struct {
     // vvv just don't remove or rename these vvv
     char name[FS_FNAME_MAX];
     file_t type;
+    size_t inode_id;
 } file_record_t;
 
-typedef struct F19FS
-{
-} F19FS_t;
+typedef struct F19FS F19FS_t;
+
+typedef struct inode inode_t;
 
 ///
 /// Formats (and mounts) an F19FS file for use
