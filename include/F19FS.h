@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 #include <dyn_array.h>
+#include <block_store.h>
+#include <inode.h>
 
 #include <stdio.h>
 #include <time.h>
@@ -31,6 +33,7 @@ typedef struct F19FS F19FS_t;
 
 typedef struct inode inode_t;
 
+typedef struct file_descriptor file_descriptor_t;
 ///
 /// Formats (and mounts) an F19FS file for use
 /// \param fname The file to format
