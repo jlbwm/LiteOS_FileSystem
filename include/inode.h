@@ -11,19 +11,15 @@ extern "C"
 #include <sys/mman.h>
 #include <block_store.h>
 
-<<<<<<< HEAD
 #define number_inodes 256
 #define inode_size 64
 #define BLOCK_STORE_NUM_INODE_BITMAP_BLOCK 1
 #define BLOCK_STORE_NUM_INODE_TABLE_BLOCK 16
 
-=======
->>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
 #ifndef BLOCK_STORE_STRUCT
 typedef struct block_store block_store_t;
 #endif
 
-<<<<<<< HEAD
 typedef struct inode {
     uint32_t entryBitmap;    // if it is directory inode, use 32bit bitmap denote the entry avalibility
     char owner[18];         // for alignment purpose only   
@@ -40,10 +36,6 @@ typedef struct inode {
     uint16_t indirectPointer;
     uint16_t doubleIndirectPointer;
 }inode_t;
-=======
-typedef struct inode inode_t;
-
->>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
 
     ///
     /// Creates a new back_store file for inode at the specified location
@@ -69,20 +61,14 @@ typedef struct inode inode_t;
     /// \param bs BS device
     /// \param block_id the index of the bs->data_block array
     /// \param buffer the buffer store the read result
-<<<<<<< HEAD
     /// \return Number of bytes read, 0 on error
-=======
->>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
     size_t inode_table_read(const block_store_t *const bs, const size_t block_id, void *buffer);
     
     /// write to the provided block given by the block_id to the given buffer
     /// \param bs BS device
     /// \param block_id the index of the bs->data_block array
     /// \param buffer the buffer to be writen from
-<<<<<<< HEAD
     /// \return Number of bytes written, 0 on error
-=======
->>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
     size_t inode_table_write(block_store_t *const bs, const size_t block_id, const void *buffer);
 
 #ifdef __cplusplus
