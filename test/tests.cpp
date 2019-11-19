@@ -393,63 +393,62 @@ TEST(c_tests, open_close_file) {
  */
 
 
-// TEST(f_tests, get_dir) {
-//    vector<const char *> fnames{
-//    "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
-//    "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
-//    "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould and yet was not enough so I had to add "
-//    "more/bad_req",
-//    "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobigEXACT!", "/", "/mystery_file"};
-//    const char *test_fname = "f_tests.F19FS";
-//    ASSERT_EQ(system("cp c_tests.F19FS f_tests.F19FS"), 0);
-//    F19FS *fs = fs_mount(test_fname);
-//    ASSERT_NE(fs, nullptr);
-//     // FS_GET_DIR 1
-//     dyn_array_t *record_results = fs_get_dir(fs, "/");
-//     ASSERT_NE(record_results, nullptr);
-//     ASSERT_TRUE(find_in_directory(record_results, "file"));
-//     ASSERT_TRUE(find_in_directory(record_results, "folder"));
-//     ASSERT_EQ(dyn_array_size(record_results), 2);
-//     dyn_array_destroy(record_results);
+TEST(f_tests, get_dir) {
+   vector<const char *> fnames{
+   "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
+   "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
+   "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould and yet was not enough so I had to add "
+   "more/bad_req",
+   "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobigEXACT!", "/", "/mystery_file"};
+   const char *test_fname = "f_tests.F19FS";
+   ASSERT_EQ(system("cp c_tests.F19FS f_tests.F19FS"), 0);
+   F19FS *fs = fs_mount(test_fname);
+   ASSERT_NE(fs, nullptr);
+    // FS_GET_DIR 1
+    dyn_array_t *record_results = fs_get_dir(fs, "/");
+    ASSERT_NE(record_results, nullptr);
+    ASSERT_TRUE(find_in_directory(record_results, "file"));
+    ASSERT_TRUE(find_in_directory(record_results, "folder"));
+    ASSERT_EQ(dyn_array_size(record_results), 2);
+    dyn_array_destroy(record_results);
+
+    // FS_GET_DIR 2
+    record_results = fs_get_dir(fs, fnames[1]);
+    ASSERT_NE(record_results, nullptr);
+    ASSERT_TRUE(find_in_directory(record_results, "with_file"));
+    ASSERT_TRUE(find_in_directory(record_results, "with_folder"));
+    ASSERT_EQ(dyn_array_size(record_results), 2);
+    dyn_array_destroy(record_results);
+    score += 10;
+
+    // FS_GET_DIR 3
+    record_results = fs_get_dir(fs, fnames[3]);
+    ASSERT_NE(record_results, nullptr);
+    ASSERT_EQ(dyn_array_size(record_results), 0);
+    dyn_array_destroy(record_results);
 
 
-//     // FS_GET_DIR 2
-//     record_results = fs_get_dir(fs, fnames[1]);
-//     ASSERT_NE(record_results, nullptr);
-//     ASSERT_TRUE(find_in_directory(record_results, "with_file"));
-//     ASSERT_TRUE(find_in_directory(record_results, "with_folder"));
-//     ASSERT_EQ(dyn_array_size(record_results), 2);
-//     dyn_array_destroy(record_results);
-//     score += 10;
+    // FS_GET_DIR 4
+    record_results = fs_get_dir(fs, fnames[9]);
+    ASSERT_EQ(record_results, nullptr);
+    score += 10;
 
-//     // FS_GET_DIR 3
-//     record_results = fs_get_dir(fs, fnames[3]);
-//     ASSERT_NE(record_results, nullptr);
-//     ASSERT_EQ(dyn_array_size(record_results), 0);
-//     dyn_array_destroy(record_results);
+    // FS_GET_DIR 5
+    record_results = fs_get_dir(fs, NULL);
+    ASSERT_EQ(record_results, nullptr);
 
 
-//     // FS_GET_DIR 4
-//     record_results = fs_get_dir(fs, fnames[9]);
-//     ASSERT_EQ(record_results, nullptr);
-//     score += 10;
-
-//     // FS_GET_DIR 5
-//     record_results = fs_get_dir(fs, NULL);
-//     ASSERT_EQ(record_results, nullptr);
+    // FS_GET_DIR 6
+    record_results = fs_get_dir(NULL, fnames[3]);
+    ASSERT_EQ(record_results, nullptr);
 
 
-//     // FS_GET_DIR 6
-//     record_results = fs_get_dir(NULL, fnames[3]);
-//     ASSERT_EQ(record_results, nullptr);
-
-
-//     // FS_GET_DIR 7
-//     record_results = fs_get_dir(fs, fnames[0]);
-//     ASSERT_EQ(record_results, nullptr);
-//     fs_unmount(fs);
-//     score += 10;
-// }
+    // FS_GET_DIR 7
+    record_results = fs_get_dir(fs, fnames[0]);
+    ASSERT_EQ(record_results, nullptr);
+    fs_unmount(fs);
+    score += 10;
+}
 
 
 

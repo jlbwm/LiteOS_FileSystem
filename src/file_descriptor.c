@@ -64,3 +64,10 @@ size_t fd_table_write(const block_store_t *const bs, const size_t block_id, void
     memcpy(bs->data_blocks+block_id * SIZE_FD, buffer, SIZE_FD);
     return SIZE_FD;
 }
+
+bool fd_table_test(const block_store_t* const bs, const size_t fd_id) {
+    if (!bs || fd_id >= NUM_FD) {
+        return false;
+    }
+    return bitmap_test(bs->fbm, fd_id);
+}

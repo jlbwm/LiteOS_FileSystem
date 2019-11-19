@@ -51,6 +51,8 @@ typedef struct fileDescriptor {
     size_t fd_table_write(const block_store_t *const bs, const size_t block_id, void *buffer);
 
 
+    bool fd_table_test(const block_store_t* const bs, const size_t fd_id);
+
 
 
 #ifdef __cplusplus
