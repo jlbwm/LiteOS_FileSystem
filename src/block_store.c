@@ -283,4 +283,18 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
     return 0;
 }
 
+uint8_t* block_store_get_data(block_store_t *const bs) {
+    if(bs != NULL)
+    {
+        return bs->data_blocks;
+    }
+    return NULL;
+}
+
+bitmap_t* block_store_get_bm(block_store_t* const bs) {
+    if (bs) {
+        return bs->fbm;
+    }
+    return NULL;
+}
 

@@ -21,7 +21,7 @@ typedef enum { FS_REGULAR, FS_DIRECTORY } file_t;
 #define FS_FNAME_MAX (32)
 // INCLUDING null terminator
 
-typedef struct {
+typedef struct file_record{
     // You can add more if you want
     // vvv just don't remove or rename these vvv
     char name[FS_FNAME_MAX];
@@ -34,6 +34,11 @@ typedef struct F19FS F19FS_t;
 typedef struct inode inode_t;
 
 typedef struct file_descriptor file_descriptor_t;
+
+typedef struct entry entry_t;
+
+typedef struct directory_block db_t;
+
 ///
 /// Formats (and mounts) an F19FS file for use
 /// \param fname The file to format

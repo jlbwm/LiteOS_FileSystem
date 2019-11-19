@@ -35,7 +35,6 @@ bool find_in_directory(const dyn_array_t *const record_arr, const char *fname) {
     return false;
 }
 
-
 /*
    F19FS * fs_format(const char *const fname);
    1   Normal
@@ -100,110 +99,112 @@ TEST(a_tests, format_mount_unmount) {
    20. Error, out of inodes.
    21. Error, out of data blocks & file is directory (requires functional write)
  */
-/*
-   TEST(b_tests, file_creation_one) {
-   vector<const char *> filenames{
-   "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
-   "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
-   "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould and yet was not enough so I had to add "
-   "more/bad_req",
-   "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobigEXACT!", "/", "/mystery_file"};
-   const char *test_fname = "b_tests_normal.F19FS";
-   F19FS *fs = fs_format(test_fname);
-   ASSERT_NE(fs, nullptr);
 
-// CREATE_FILE 1
-ASSERT_EQ(fs_create(fs, filenames[0], FS_REGULAR), 0);
+TEST(b_tests, file_creation_one) {
+    vector<const char *> filenames{
+    "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
+    "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
+    "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould and yet was not enough so I had to add "
+    "more/bad_req",
+    "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobigEXACT!", "/", "/mystery_file"};
+    const char *test_fname = "b_tests_normal.F19FS";
+    F19FS *fs = fs_format(test_fname);
+    ASSERT_NE(fs, nullptr);
 
-
-// CREATE_FILE 2
-ASSERT_EQ(fs_create(fs, filenames[1], FS_DIRECTORY), 0);
+    // CREATE_FILE 1
+    ASSERT_EQ(fs_create(fs, filenames[0], FS_REGULAR), 0);
 
 
-// CREATE_FILE 3
-ASSERT_EQ(fs_create(fs, filenames[2], FS_REGULAR), 0);
+    // CREATE_FILE 2
+    ASSERT_EQ(fs_create(fs, filenames[1], FS_DIRECTORY), 0);
 
 
-// CREATE_FILE 4
-ASSERT_EQ(fs_create(fs, filenames[3], FS_DIRECTORY), 0);
+    // CREATE_FILE 3
+    ASSERT_EQ(fs_create(fs, filenames[2], FS_REGULAR), 0);
 
 
-// CREATE_FILE 5
-ASSERT_LT(fs_create(NULL, filenames[4], FS_REGULAR), 0);
-score += 5;
-
-// CREATE_FILE 6
-ASSERT_LT(fs_create(fs, NULL, FS_REGULAR), 0);
+    // CREATE_FILE 4
+    ASSERT_EQ(fs_create(fs, filenames[3], FS_DIRECTORY), 0);
 
 
-// CREATE_FILE 7
-ASSERT_LT(fs_create(fs, "", FS_REGULAR), 0);
+    // CREATE_FILE 5
+    ASSERT_LT(fs_create(NULL, filenames[4], FS_REGULAR), 0);
+    score += 5;
+
+    // CREATE_FILE 6
+    ASSERT_LT(fs_create(fs, NULL, FS_REGULAR), 0);
 
 
-// CREATE_FILE 8
-ASSERT_LT(fs_create(fs, filenames[13], (file_t) 44), 0);
+    // CREATE_FILE 7
+    ASSERT_LT(fs_create(fs, "", FS_REGULAR), 0);
 
 
-// CREATE_FILE 9
-ASSERT_LT(fs_create(fs, filenames[6], FS_REGULAR), 0);
+    // CREATE_FILE 8
+    ASSERT_LT(fs_create(fs, filenames[13], (file_t) 44), 0);
 
 
-// CREATE_FILE 10
-ASSERT_LT(fs_create(fs, filenames[12], FS_DIRECTORY), 0);
+    // CREATE_FILE 9
+    ASSERT_LT(fs_create(fs, filenames[6], FS_REGULAR), 0);
 
 
-// CREATE_FILE 11
-ASSERT_LT(fs_create(fs, filenames[1], FS_DIRECTORY), 0);
-score += 5;
-
-ASSERT_LT(fs_create(fs, filenames[1], FS_REGULAR), 0);
+    // CREATE_FILE 10
+    ASSERT_LT(fs_create(fs, filenames[12], FS_DIRECTORY), 0);
 
 
-// CREATE_FILE 12
-ASSERT_LT(fs_create(fs, filenames[0], FS_REGULAR), 0);
+    // CREATE_FILE 11
+    ASSERT_LT(fs_create(fs, filenames[1], FS_DIRECTORY), 0);
+    score += 5;
+
+    ASSERT_LT(fs_create(fs, filenames[1], FS_REGULAR), 0);
 
 
-ASSERT_LT(fs_create(fs, filenames[0], FS_DIRECTORY), 0);
+    // CREATE_FILE 12
+    ASSERT_LT(fs_create(fs, filenames[0], FS_REGULAR), 0);
 
 
-// CREATE_FILE 13
-ASSERT_LT(fs_create(fs, filenames[5], FS_REGULAR), 0);
+    ASSERT_LT(fs_create(fs, filenames[0], FS_DIRECTORY), 0);
 
 
-// CREATE_FILE 14
-ASSERT_LT(fs_create(fs, filenames[7], FS_REGULAR), 0);
+    // CREATE_FILE 13
+    ASSERT_LT(fs_create(fs, filenames[5], FS_REGULAR), 0);
 
 
-// CREATE_FILE 15
-ASSERT_LT(fs_create(fs, filenames[8], FS_REGULAR), 0);
-
-// But if we don't support relative paths, is there a reason to force abolute notation?
-// It's really a semi-arbitrary restriction
-// I suppose relative paths are up to the implementation, since . and .. are just special folder entires
-// but that would mess with the directory content total, BUT extra parsing can work around that.
-// Hmmmm.
-// CREATE_FILE 16
-ASSERT_LT(fs_create(fs, filenames[9], FS_DIRECTORY), 0);
+    // CREATE_FILE 14
+    // "/folder/with_file/bad_req"
+    ASSERT_LT(fs_create(fs, filenames[7], FS_REGULAR), 0);
 
 
-// CREATE_FILE 17
-ASSERT_LT(fs_create(fs, filenames[10], FS_REGULAR), 0);
+    // CREATE_FILE 15
+    ASSERT_LT(fs_create(fs, filenames[8], FS_REGULAR), 0);
+
+    // But if we don't support relative paths, is there a reason to force abolute notation?
+    // It's really a semi-arbitrary restriction
+    // I suppose relative paths are up to the implementation, since . and .. are just special folder entires
+    // but that would mess with the directory content total, BUT extra parsing can work around that.
+    // Hmmmm.
+    // CREATE_FILE 16
+    ASSERT_LT(fs_create(fs, filenames[9], FS_DIRECTORY), 0);
 
 
-// CREATE_FILE 18
-ASSERT_LT(fs_create(fs, filenames[11], FS_REGULAR), 0);
+    // CREATE_FILE 17
+    ASSERT_LT(fs_create(fs, filenames[10], FS_REGULAR), 0);
 
 
-// Closing this file now for inspection to make sure these tests didn't mess it up
-fs_unmount(fs);
-score += 5;
+    // CREATE_FILE 18
+    ASSERT_LT(fs_create(fs, filenames[11], FS_REGULAR), 0);
+
+
+    // Closing this file now for inspection to make sure these tests didn't mess it up
+    fs_unmount(fs);
+    score += 5;
 
 }
+
 TEST(b_tests, file_creation_two) {
     // CREATE_FILE 19 - OUT OF INODES (and test 18 along the way)
     // Gotta make... Uhh... A bunch of files. (255, but we'll need directories to hold them as well)
     const char *test_fname = "b_tests_full_table.F19FS";
-    F19FS *fs            = fs_format(test_fname);
+    F19FS *fs = fs_format(test_fname);
     ASSERT_NE(fs, nullptr);
     // puts("Attempting to fill inode table...");
     // Dummy string to loop with
@@ -219,13 +220,13 @@ TEST(b_tests, file_creation_two) {
     for (char dir = 'a'; dir < 'p'; ++dir) {
         fname[1] = dir;
         fname[2] = '\0';
-        //		printf("File: %s\n", fname);
+        // printf("FileDir: %s\n", fname);
         ASSERT_EQ(fs_create(fs, fname, FS_DIRECTORY), 0);
 
         fname[2] = '/';
         for (char file = 'a'; file < 'p'; ++file) {
             fname[3] = file;
-            //          printf("File: %s\n", fname);
+            // printf("FileDir: %s\n", fname);
             ASSERT_EQ(fs_create(fs, fname, FS_DIRECTORY), 0);
         }
     }
@@ -260,7 +261,7 @@ TEST(b_tests, file_creation_two) {
     // ... Can't really test 21 yet.
     score += 5;
 }
-*/
+
 /*
    int fs_open(F19FS *fs, const char *path)
    1. Normal, file at root
@@ -281,8 +282,8 @@ TEST(b_tests, file_creation_two) {
    6. Error, invalid fd, positive, out of bounds
    7. Error, invaid fs, negative
  */
-/*
-   TEST(c_tests, open_close_file) {
+
+TEST(c_tests, open_close_file) {
    vector<const char *> filenames{
    "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
    "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
@@ -294,92 +295,92 @@ TEST(b_tests, file_creation_two) {
    F19FS *fs = fs_mount(test_fname);
    ASSERT_NE(fs, nullptr);
    int fd_array[256] = {-1};
-// OPEN_FILE 1
-fd_array[0] = fs_open(fs, filenames[0]);
-ASSERT_GE(fd_array[0], 0);
+    // OPEN_FILE 1
+    fd_array[0] = fs_open(fs, filenames[0]);
+    ASSERT_GE(fd_array[0], 0);
 
 
-// CLOSE_FILE 4
-ASSERT_LT(fs_close(NULL, fd_array[0]), 0);
+    // CLOSE_FILE 4
+    ASSERT_LT(fs_close(NULL, fd_array[0]), 0);
 
 
-// CLOSE_FILE 1
-ASSERT_EQ(fs_close(fs, fd_array[0]), 0);
+    // CLOSE_FILE 1
+    ASSERT_EQ(fs_close(fs, fd_array[0]), 0);
 
 
-// CLOSE_FILE 2 and 3 elsewhere
-// CLOSE_FILE 5
-ASSERT_LT(fs_close(fs, 70), 0);
+    // CLOSE_FILE 2 and 3 elsewhere
+    // CLOSE_FILE 5
+    ASSERT_LT(fs_close(fs, 70), 0);
 
 
-// CLOSE_FILE 6
-ASSERT_LT(fs_close(fs, 7583), 0);
+    // CLOSE_FILE 6
+    ASSERT_LT(fs_close(fs, 7583), 0);
 
 
-// CLOSE_FILE 7
-ASSERT_LT(fs_close(fs, -18), 0);
-score += 20;
+    // CLOSE_FILE 7
+    ASSERT_LT(fs_close(fs, -18), 0);
+    score += 20;
 
-// OPEN_FILE 2
-fd_array[1] = fs_open(fs, filenames[2]);
-ASSERT_GE(fd_array[1], 0);
-ASSERT_EQ(fs_close(fs, fd_array[0]), 0);
-
-
-// OPEN_FILE 3
-fd_array[2] = fs_open(fs, filenames[0]);
-ASSERT_GE(fd_array[2], 0);
-fd_array[3] = fs_open(fs, filenames[0]);
-ASSERT_GE(fd_array[3], 0);
-fd_array[4] = fs_open(fs, filenames[0]);
-ASSERT_GE(fd_array[4], 0);
-ASSERT_EQ(fs_close(fs, fd_array[2]), 0);
-ASSERT_EQ(fs_close(fs, fd_array[3]), 0);
-ASSERT_EQ(fs_close(fs, fd_array[4]), 0);
+    // OPEN_FILE 2
+    fd_array[1] = fs_open(fs, filenames[2]);
+    ASSERT_GE(fd_array[1], 0);
+    ASSERT_EQ(fs_close(fs, fd_array[0]), 0);
 
 
-// OPEN_FILE 4
-fd_array[5] = fs_open(NULL, filenames[0]);
-ASSERT_LT(fd_array[5], 0);
+    // OPEN_FILE 3
+    fd_array[2] = fs_open(fs, filenames[0]);
+    ASSERT_GE(fd_array[2], 0);
+    fd_array[3] = fs_open(fs, filenames[0]);
+    ASSERT_GE(fd_array[3], 0);
+    fd_array[4] = fs_open(fs, filenames[0]);
+    ASSERT_GE(fd_array[4], 0);
+    ASSERT_EQ(fs_close(fs, fd_array[2]), 0);
+    ASSERT_EQ(fs_close(fs, fd_array[3]), 0);
+    ASSERT_EQ(fs_close(fs, fd_array[4]), 0);
 
 
-// OPEN_FILE 5
-fd_array[5] = fs_open(fs, NULL);
-ASSERT_LT(fd_array[5], 0);
+    // OPEN_FILE 4
+    fd_array[5] = fs_open(NULL, filenames[0]);
+    ASSERT_LT(fd_array[5], 0);
 
 
-// OPEN_FILE 6
-// Uhh, bad filename? Not a slash?
-// It's wrong for a bunch of reasons, really.
-fd_array[5] = fs_open(fs, "");
-ASSERT_LT(fd_array[5], 0);
-score += 20;
-
-// OPEN_FILE 7
-fd_array[5] = fs_open(fs, "/");
-ASSERT_LT(fd_array[5], 0);
-fd_array[5] = fs_open(fs, filenames[1]);
-ASSERT_LT(fd_array[5], 0);
+    // OPEN_FILE 5
+    fd_array[5] = fs_open(fs, NULL);
+    ASSERT_LT(fd_array[5], 0);
 
 
-// OPEN_FILE 8
-fd_array[5] = fs_open(fs, filenames[6]);
-ASSERT_LT(fd_array[5], 0);
+    // OPEN_FILE 6
+    // Uhh, bad filename? Not a slash?
+    // It's wrong for a bunch of reasons, really.
+    fd_array[5] = fs_open(fs, "");
+    ASSERT_LT(fd_array[5], 0);
+    score += 20;
 
-// OPEN_FILE 9
-// In case I'm leaking descriptors, wipe them all
-fs_unmount(fs);
-fs = fs_mount(test_fname);
-ASSERT_NE(fs, nullptr);
-for (int i = 0; i < 256; ++i) {
-    fd_array[i] = fs_open(fs, filenames[0]);
+    // OPEN_FILE 7
+    fd_array[5] = fs_open(fs, "/");
+    ASSERT_LT(fd_array[5], 0);
+    fd_array[5] = fs_open(fs, filenames[1]);
+    ASSERT_LT(fd_array[5], 0);
+
+
+    // OPEN_FILE 8
+    fd_array[5] = fs_open(fs, filenames[6]);
+    ASSERT_LT(fd_array[5], 0);
+
+    // OPEN_FILE 9
+    // In case I'm leaking descriptors, wipe them all
+    fs_unmount(fs);
+    fs = fs_mount(test_fname);
+    ASSERT_NE(fs, nullptr);
+    for (int i = 0; i < 256; ++i) {
+        fd_array[i] = fs_open(fs, filenames[0]);
+    }
+    int err = fs_open(fs, filenames[0]);
+    ASSERT_LT(err, 0);
+    fs_unmount(fs);
+    score += 20;
 }
-int err = fs_open(fs, filenames[0]);
-ASSERT_LT(err, 0);
-fs_unmount(fs);
-score += 20;
-}
-*/
+
 /*
    int fs_get_dir(const F19FS *const fs, const char *const fname, dir_rec_t *const records)
    1. Normal, root I guess?
@@ -390,65 +391,68 @@ score += 20;
    6. Error, NULL fs
    7. Error, not a directory
  */
-/*
-   TEST(f_tests, get_dir) {
-   vector<const char *> fnames{
-   "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
-   "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
-   "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould and yet was not enough so I had to add "
-   "more/bad_req",
-   "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobigEXACT!", "/", "/mystery_file"};
-   const char *test_fname = "f_tests.F19FS";
-   ASSERT_EQ(system("cp c_tests.F19FS f_tests.F19FS"), 0);
-   F19FS *fs = fs_mount(test_fname);
-   ASSERT_NE(fs, nullptr);
-// FS_GET_DIR 1
-dyn_array_t *record_results = fs_get_dir(fs, "/");
-ASSERT_NE(record_results, nullptr);
-ASSERT_TRUE(find_in_directory(record_results, "file"));
-ASSERT_TRUE(find_in_directory(record_results, "folder"));
-ASSERT_EQ(dyn_array_size(record_results), 2);
-dyn_array_destroy(record_results);
 
 
-// FS_GET_DIR 2
-record_results = fs_get_dir(fs, fnames[1]);
-ASSERT_NE(record_results, nullptr);
-ASSERT_TRUE(find_in_directory(record_results, "with_file"));
-ASSERT_TRUE(find_in_directory(record_results, "with_folder"));
-ASSERT_EQ(dyn_array_size(record_results), 2);
-dyn_array_destroy(record_results);
-score += 10;
-
-// FS_GET_DIR 3
-record_results = fs_get_dir(fs, fnames[3]);
-ASSERT_NE(record_results, nullptr);
-ASSERT_EQ(dyn_array_size(record_results), 0);
-dyn_array_destroy(record_results);
-
-
-// FS_GET_DIR 4
-record_results = fs_get_dir(fs, fnames[9]);
-ASSERT_EQ(record_results, nullptr);
-score += 10;
-
-// FS_GET_DIR 5
-record_results = fs_get_dir(fs, NULL);
-ASSERT_EQ(record_results, nullptr);
+// TEST(f_tests, get_dir) {
+//    vector<const char *> fnames{
+//    "/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
+//    "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req", "folder/missing_slash", "/folder/new_folder/",
+//    "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould and yet was not enough so I had to add "
+//    "more/bad_req",
+//    "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobigEXACT!", "/", "/mystery_file"};
+//    const char *test_fname = "f_tests.F19FS";
+//    ASSERT_EQ(system("cp c_tests.F19FS f_tests.F19FS"), 0);
+//    F19FS *fs = fs_mount(test_fname);
+//    ASSERT_NE(fs, nullptr);
+//     // FS_GET_DIR 1
+//     dyn_array_t *record_results = fs_get_dir(fs, "/");
+//     ASSERT_NE(record_results, nullptr);
+//     ASSERT_TRUE(find_in_directory(record_results, "file"));
+//     ASSERT_TRUE(find_in_directory(record_results, "folder"));
+//     ASSERT_EQ(dyn_array_size(record_results), 2);
+//     dyn_array_destroy(record_results);
 
 
-// FS_GET_DIR 6
-record_results = fs_get_dir(NULL, fnames[3]);
-ASSERT_EQ(record_results, nullptr);
+//     // FS_GET_DIR 2
+//     record_results = fs_get_dir(fs, fnames[1]);
+//     ASSERT_NE(record_results, nullptr);
+//     ASSERT_TRUE(find_in_directory(record_results, "with_file"));
+//     ASSERT_TRUE(find_in_directory(record_results, "with_folder"));
+//     ASSERT_EQ(dyn_array_size(record_results), 2);
+//     dyn_array_destroy(record_results);
+//     score += 10;
+
+//     // FS_GET_DIR 3
+//     record_results = fs_get_dir(fs, fnames[3]);
+//     ASSERT_NE(record_results, nullptr);
+//     ASSERT_EQ(dyn_array_size(record_results), 0);
+//     dyn_array_destroy(record_results);
 
 
-// FS_GET_DIR 7
-record_results = fs_get_dir(fs, fnames[0]);
-ASSERT_EQ(record_results, nullptr);
-fs_unmount(fs);
-score += 10;
-}
- */
+//     // FS_GET_DIR 4
+//     record_results = fs_get_dir(fs, fnames[9]);
+//     ASSERT_EQ(record_results, nullptr);
+//     score += 10;
+
+//     // FS_GET_DIR 5
+//     record_results = fs_get_dir(fs, NULL);
+//     ASSERT_EQ(record_results, nullptr);
+
+
+//     // FS_GET_DIR 6
+//     record_results = fs_get_dir(NULL, fnames[3]);
+//     ASSERT_EQ(record_results, nullptr);
+
+
+//     // FS_GET_DIR 7
+//     record_results = fs_get_dir(fs, fnames[0]);
+//     ASSERT_EQ(record_results, nullptr);
+//     fs_unmount(fs);
+//     score += 10;
+// }
+
+
+
 /*
    ssize_t fs_write(F19FS *fs, int fd, const void *src, size_t nbyte);
    1. Normal, 0 size to < 1 block

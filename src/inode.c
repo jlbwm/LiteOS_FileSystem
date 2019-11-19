@@ -7,11 +7,23 @@
 #include <stdbool.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+<<<<<<< HEAD
 #include <stdio.h>
+=======
+>>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
 #include "block_store.h"
 #include "bitmap.h"
 #include "inode.h"
 
+<<<<<<< HEAD
+=======
+#define number_inodes 256
+#define inode_size 64
+#define BLOCK_STORE_NUM_INODE_BITMAP_BLOCK 1
+#define BLOCK_STORE_NUM_INODE_TABLE_BLOCK 16
+#define BLOCK_STORE_NUM_BYTES 1024
+
+>>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
 struct block_store {
     int fd;
     uint8_t *data_blocks;
@@ -25,7 +37,11 @@ block_store_t *inode_table_create(void *const bitmap_buffer, void *const block_b
         return NULL;
     }
     bs->fbm = bitmap_overlay(number_inodes, bitmap_buffer);
+<<<<<<< HEAD
     bs->data_blocks = block_buffer; 
+=======
+    bs->data_blocks = block_buffer;       
+>>>>>>> 878a22495c47a2f71ac1d5b5925d97ad064facd4
     return bs;
 }
 
