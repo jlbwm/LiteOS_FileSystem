@@ -16,6 +16,12 @@
 #define BLOCK_SIZE_BYTES 1024         // 2^10 BYTES per block
 #define BLOCK_STORE_NUM_BYTES (BLOCK_STORE_NUM_BLOCKS * BLOCK_SIZE_BYTES)  // 2^16 blocks of 2^10 bytes.
 
+#define number_inodes 256
+#define inode_size 64
+
+#define number_fd 256
+#define fd_size 6	// any number as you see fit
+
 struct block_store {
     int fd;
     uint8_t *data_blocks;
@@ -58,17 +64,16 @@ block_store_t *block_store_init(const bool init, const char *const fname) {
             if (bs->fd != -1) {
                 bs->data_blocks = (uint8_t *) mmap(NULL, BLOCK_STORE_NUM_BYTES, PROT_READ | PROT_WRITE, MAP_SHARED, bs->fd, 0);
                 if (bs->data_blocks != (uint8_t *) MAP_FAILED) {
-                    if (init) {
-                        memset(bs->data_blocks, 0X00, BLOCK_STORE_NUM_BYTES);
-                        bs->data_blocks[BLOCK_STORE_NUM_BYTES - 1] = 0xff;
-                        // set the last byte in data_blocks Oxff
-                        // in case you are trying to write to the bitmap, that will be a disaster
-                    }
-                    bs->fbm = bitmap_overlay(BLOCK_STORE_AVAIL_BLOCKS, bs->data_blocks + BLOCK_STORE_AVAIL_BLOCKS*BLOCK_SIZE_BYTES);
-                    if (bs->fbm) {
-                        return bs;
-                    }
-                    munmap(bs->data_blocks, BLOCK_STORE_NUM_BYTES);
+                         if (init) {
+                                memset(bs->data_blocks, 0X00, BLOCK_STORE_NUM_BYTES);
+								                bs->data_blocks[BLOCK_STORE_NUM_BYTES - 1] = 0xff;
+								                // in case you are trying to write to the bitmap, that will be a disaster
+                          }
+                          bs->fbm = bitmap_overlay(BLOCK_STORE_AVAIL_BLOCKS, bs->data_blocks + BLOCK_STORE_AVAIL_BLOCKS*BLOCK_SIZE_BYTES);
+                          if (bs->fbm) {
+                                return bs;
+                           }
+                           munmap(bs->data_blocks, BLOCK_STORE_NUM_BYTES);
                 }
                 close(bs->fd);
             }
@@ -250,7 +255,6 @@ block_store_t *block_store_deserialize(const char *const filename) {
         }
         block_store_t *bs = NULL;
         bs = block_store_create(filename);
-        // create a empty block store and then fill it by reading from giveing file
         int df_read1, df_read2;
         df_read1 = read(fd, bs->data_blocks, BLOCK_STORE_AVAIL_BLOCKS*BLOCK_SIZE_BYTES); // read bs->Data from the file
         df_read2 = read(fd, bs->fbm, BLOCK_STORE_NUM_BLOCKS/8); // read bs->FBM from the file
@@ -283,6 +287,137 @@ size_t block_store_serialize(const block_store_t *const bs, const char *const fi
     return 0;
 }
 
+
+/// new library functions
+block_store_t *block_store_inode_create(void *const BM_start_pos, void *const data_start_pos)
+{
+	block_store_t* BS = (block_store_t*)malloc(sizeof(block_store_t));
+	if(BS != NULL)	// pointer of the new block store has successfully created
+	{
+		BS->fbm = bitmap_overlay(256, BM_start_pos);
+		BS->data_blocks = data_start_pos;		
+		return BS;
+	}
+	return NULL;
+}
+
+
+
+block_store_t *block_store_fd_create()
+{
+	block_store_t* BS = (block_store_t*)malloc(sizeof(block_store_t));
+	if(BS != NULL)	// pointer of the new block store has successfully created
+	{
+		BS->data_blocks = calloc(256, 6);	// create space for the blocks
+		BS->fbm = bitmap_create(256);
+		return BS;
+	}
+	return NULL;
+}
+///
+/// This returns pointer to start of the Data of a block store
+/// \param bs BS device
+/// \return Pointer to a Data of a storage device, NULL on error
+uint8_t * block_store_Data_location(block_store_t *const bs)
+{
+	if(bs != NULL)
+	{
+		return bs->data_blocks;
+	}
+	return NULL;
+}
+
+void block_store_inode_destroy(block_store_t *const bs)
+{
+	if (bs)
+	{
+		bitmap_destroy(bs->fbm);		// since fbm and data_blocks are in the same memory space, we cannot free the space twice!
+		free(bs);
+	}
+}
+
+
+void block_store_fd_destroy(block_store_t *const bs)
+{
+	if (bs)
+	{
+		bitmap_destroy(bs->fbm);		// since fbm and data_blocks are in the same memory space, we cannot free the space twice!
+		free(bs->data_blocks);
+		free(bs);
+	}
+}
+size_t block_store_sub_allocate(block_store_t *const bs) {
+    if (bs == NULL) {
+        return SIZE_MAX; // return SIZE_MAX if the input is a null pointer
+    }
+    //-- find first zero in the bitmap
+    size_t id;
+    id = bitmap_ffz(bs->fbm); // index of the first free block
+    if (id == SIZE_MAX) {
+        return SIZE_MAX; // return SIZE_MAX since the last block is not available for storing data
+    }
+    bitmap_set(bs->fbm, id); // mark it as in use
+//	printf("fd_id = 0 is used or not?: %d\n", bitmap_test(bs->fbm, id));
+    return id;
+}
+bool block_store_sub_test(block_store_t *const bs, const size_t block_id) {
+    if (block_id > 255 || bs == NULL) {
+        return false;
+    }
+    bool blockUsed = 0;
+    blockUsed = bitmap_test(bs->fbm, block_id); // check if the block is in use
+    if (blockUsed) { // if this block is already in use
+        //bitmap_destroy(bs->fbm); // destruct and destroy bitmap object
+        return true;
+    }
+	return false;
+}
+void block_store_sub_release(block_store_t *const bs, const size_t block_id) {
+    if (block_id < 256 && bs != NULL) {
+        bool success = 0;
+        success = bitmap_test(bs->fbm, block_id); // check if the block is in use
+        if (success) {
+            bitmap_reset(bs->fbm, block_id); // clear requested bit in bitmap
+    //        bitmap_destroy(bs->fbm); // destruct and destroy bitmap object
+        }
+    }
+    //// Some error message here ////
+}
+size_t block_store_inode_read(const block_store_t *const bs, const size_t block_id, void *buffer) {
+    if (bs && buffer && block_id <= 255) {
+        memcpy(buffer, bs->data_blocks+block_id * 64, 64);
+        return 64;
+    }
+    return 0;
+}
+
+
+size_t block_store_fd_read(const block_store_t *const bs, const size_t block_id, void *buffer) {
+    if (bs && buffer && block_id <= 255) {
+        memcpy(buffer, bs->data_blocks+block_id * 6, 6);
+        return 6;
+    }
+    return 0;
+}
+size_t block_store_inode_write(block_store_t *const bs, const size_t block_id, const void *buffer) {
+    if (bs && buffer && block_id < 256) {
+        memcpy(bs->data_blocks+block_id*64, buffer, 64);
+        return 64;
+    }
+    return 0;
+}
+
+
+
+size_t block_store_fd_write(block_store_t *const bs, const size_t block_id, const void *buffer) {
+    if (bs && buffer && block_id < 256) {
+        memcpy(bs->data_blocks+block_id*6, buffer, 6);
+        return 6;
+    }
+    return 0;
+}
+
+
 uint8_t* block_store_get_data(block_store_t *const bs) {
     if(bs != NULL)
     {
@@ -297,4 +432,3 @@ bitmap_t* block_store_get_bm(block_store_t* const bs) {
     }
     return NULL;
 }
-

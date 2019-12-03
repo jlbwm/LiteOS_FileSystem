@@ -40,6 +40,7 @@ void fd_table_destory(block_store_t *const bs) {
 }
 
 void fd_table_release(block_store_t *const bs, const size_t block_id) {
+    // reset the bitmap, no need to wipe the block content
     if (!bs || block_id > NUM_FD) {
         return;
     }

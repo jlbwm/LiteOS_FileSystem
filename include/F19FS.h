@@ -3,8 +3,6 @@
 
 #include <sys/types.h>
 #include <dyn_array.h>
-#include <block_store.h>
-#include <inode.h>
 
 #include <stdio.h>
 #include <time.h>
@@ -12,6 +10,12 @@
 #include <inttypes.h>	// for uint16_t
 #include <string.h>
 
+// components of F19FS
+typedef struct inode inode_t;
+typedef struct fileDescriptor fileDescriptor_t;
+typedef struct directoryFile directoryFile_t;
+
+typedef struct F19FS F19FS_t;
 
 // seek_t is for fs_seek
 typedef enum { FS_SEEK_SET, FS_SEEK_CUR, FS_SEEK_END } seek_t;
@@ -21,23 +25,12 @@ typedef enum { FS_REGULAR, FS_DIRECTORY } file_t;
 #define FS_FNAME_MAX (32)
 // INCLUDING null terminator
 
-typedef struct file_record{
+typedef struct {
     // You can add more if you want
     // vvv just don't remove or rename these vvv
     char name[FS_FNAME_MAX];
     file_t type;
-    size_t inode_id;
 } file_record_t;
-
-typedef struct F19FS F19FS_t;
-
-typedef struct inode inode_t;
-
-typedef struct file_descriptor file_descriptor_t;
-
-typedef struct entry entry_t;
-
-typedef struct directory_block db_t;
 
 ///
 /// Formats (and mounts) an F19FS file for use
@@ -162,5 +155,18 @@ int fs_move(F19FS_t *fs, const char *src, const char *dst);
 /// \return 0 on success, < 0 on error
 ///
 int fs_link(F19FS_t *fs, const char *src, const char *dst);
+
+
+ssize_t write_direct_block(F19FS_t* fs, inode_t* inode, uint16_t fd_locator, uint16_t fd_offset, const void* src, size_t nbyte);
+
+ssize_t write_indirect_block(F19FS_t* fs, inode_t* inode, uint16_t fd_locator, uint16_t fd_offset, const void* src, size_t nbyte, size_t indirectBlockID);
+
+ssize_t write_double_direct_block(F19FS_t* fs, inode_t* inode, uint16_t fd_locator, uint16_t fd_offset, const void* src, size_t nbyte);
+
+ssize_t read_direct_block(F19FS_t* fs, inode_t* inode, uint16_t fd_locator, uint16_t fd_offset, void* src, size_t nbyte);
+
+ssize_t read_indirect_block(F19FS_t* fs, inode_t* inode, uint16_t fd_locator, uint16_t fd_offset, void* dst, size_t nbyte, uint16_t indirectBlockID);
+
+ssize_t read_doubleDirect_block(F19FS_t* fs, inode_t* inode, uint16_t fd_locator, uint16_t fd_offset, void* dst, size_t nbyte);
 
 #endif

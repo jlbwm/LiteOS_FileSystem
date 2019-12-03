@@ -26,7 +26,7 @@ On success, zero is returned. On error, -1 is returned, and errno is set appropr
 2. mmap
 - void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
 
-creates a new mapping in the <>virtual address space of the calling process.  
+creates a new mapping in the virtual address space of the calling process.  
 
 The starting address for the new mapping is specified in addr.  
 
@@ -44,10 +44,26 @@ The munmap() system call deletes the mappings for the specified address range, a
 The region is also automatically unmapped when the process is terminated.  On the other hand, closing the file descriptor does not unmap the region.
 
 
-# Note
-Please note that:
-1. All errors are treated as fatal errors. That means, failure on one ASSERT statement in a certain test will cause force break of execution, and the rest statements in that test have no opportunity to execute, and you have no way to pick up scores for those checkings. So please try to pass every ASSERT statement in each test.
-2. Please uncomment the tests for corresponding milestones.
-3. You can add more library functions for bitmap or blockstore as you see convenient. You cannot modify the tests.cpp except for the last milestone.
-4. Please be careful about memory leaks. You, as programmers, are responsible for releasing memory after you're done. Smart pointers? good idea.
-5. No cheating. Our plagiarism detection tool can easily find similar code. 
+# TEST
+
+1. memset
+- void* memset(void* ptr, int value, size_t num);
+
+ptr: Pointer to the block of memory to fill
+value: Value to be set. The value is passed as an int, but the function fills the block of memory using the unsigned char conversion of this value
+num: Number of bytes to be set to the value.
+
+2. memcpy
+- void* memcpy(void* destination, const void* source, size_t num);
+
+Copies the values of num bytes from the location pointed to by source directly to the memory block pointed to by destination. 
+
+
+# FILE_DESCRIPTOR
+
+1. off_t
+
+This is a signed integer type used to represent file sizes. In the GNU C Library, this type is no narrower than int. If the source is compiled with _FILE_OFFSET_BITS == 64 this type is transparently replaced by off64_t.
+
+So in 64 bits machine, off_t equals to size_t which is 8 byte
+

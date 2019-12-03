@@ -15,10 +15,13 @@ extern "C"
 typedef struct block_store block_store_t;
 #endif
 
+#define NUM_FD 256
+#define SIZE_FD 6
+
 typedef struct fileDescriptor {
     uint8_t inodeNum;
     // usage, locate_order and locate_offset together locate the exact byte at which the cursor is 
-    uint8_t usage; // inode pointer usage info. Only the lower 3 digits will be used. 1 for direct, 2 for indirect, 4 for dbindirect
+    uint8_t usage; // inode pointer usage info. Only the lower 3 digits will be used. 001(1) for direct, 2(010) for indirect, 4(100) for dbindirect
     uint16_t locate_order; // serial number or index of the block within direct, indirect, or dbindirect range
     uint16_t locate_offset; // offset of the cursor within a block
 }fd_t;
