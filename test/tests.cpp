@@ -634,6 +634,7 @@ TEST(d_tests, write_file_fill) {
    9. Error, NULL fname
    10. Error, Empty fname (same as file does not exist?)
  */
+
 TEST(e_tests, remove_file) {
 	vector<const char *> b_fnames{
 		"/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
@@ -840,7 +841,7 @@ TEST(h_tests, read) {
    13. Error, dst root?
    14. Error, Directory into itself
  */
-/*
+
 TEST(i_tests, move) {
 	vector<const char *> fnames{
 		"/file", "/folder", "/folder/with_file", "/folder/with_folder", "/DOESNOTEXIST", "/file/BAD_REQUEST",
@@ -853,6 +854,7 @@ TEST(i_tests, move) {
 	F19FS *fs = fs_mount(test_fname);
 	ASSERT_NE(fs, nullptr);
 	dyn_array_t *record_results = NULL;
+
 	// FS_MOVE 2
 	ASSERT_EQ(fs_move(fs, fnames[3], "/folder2"), 0);
 	record_results = fs_get_dir(fs, "/");
@@ -868,6 +870,7 @@ TEST(i_tests, move) {
 	//    ASSERT_TRUE(find_in_directory(record_results, "new_location"));
 	ASSERT_EQ(dyn_array_size(record_results), 1);
 	dyn_array_destroy(record_results);
+
 	int fd = fs_open(fs, fnames[0]);
 	// FS_MOVE 1    
 	ASSERT_EQ(fs_move(fs, fnames[0], "/folder/new_location"), 0);
@@ -957,136 +960,136 @@ TEST(i_tests, move) {
 	fs_unmount(fs);
 	score += 15;
 }
-*/
 
-// /*
-//    int fs_link(F19FS *fs, const char *src, const char *dst);
-//    1. Normal, file, make a link next to it
-//    2. Normal, directory, link next to it
-//    3. Normal, OH BOY, directory will contain itself (check that /folder/itself/itself/itself/itself/with_file exists)
-//    4. Normal, file, wite to hardlink, read the new data from fd to original file
-//    5. Normal, file, delete hardlinked file, make sure original still works
-//    6. Normal, directory, delete a hardlink directory that has contents!
-//    7. Error, dst exists
-//    8. Error, dst parent does not exist
-//    9. Error, dst parent full
-//    10. Error, src does not exist
-//    11. Error, FS null
-//    12. Error, src null
-//    13. Error, dst null
-//    14. Error, dst root
-//  */
-// TEST(j_tests, link) {
-// 	const char * test_fname = "j_tests.F19FS";
+/*
+   int fs_link(F19FS *fs, const char *src, const char *dst);
+   1. Normal, file, make a link next to it
+   2. Normal, directory, link next to it
+   3. Normal, OH BOY, directory will contain itself (check that /folder/itself/itself/itself/itself/with_file exists)
+   4. Normal, file, wite to hardlink, read the new data from fd to original file
+   5. Normal, file, delete hardlinked file, make sure original still works
+   6. Normal, directory, delete a hardlink directory that has contents!
+   7. Error, dst exists √
+   8. Error, dst parent does not exist √
+   9. Error, dst parent full 
+   10. Error, src does not exist √
+   11. Error, FS null √
+   12. Error, src null √
+   13. Error, dst null √
+   14. Error, dst root √
+ */
 
-// 	F19FS * fs = fs_format(test_fname);
-// 	ASSERT_NE(fs, nullptr); // format
+TEST(j_tests, link) {
+	const char * test_fname = "j_tests.F19FS";
 
-// 	// 1. Normal, file, make a link next to it
-// 	ASSERT_EQ(fs_create(fs, "/file", FS_REGULAR), 0);
-// 	ASSERT_EQ(fs_link(fs, "/file", "/file1"), 0);
+	F19FS * fs = fs_format(test_fname);
+	ASSERT_NE(fs, nullptr); // format
 
-// 	// 2. Normal, directory, link next to it
-// 	ASSERT_EQ(fs_create(fs, "/folder", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_link(fs, "/folder", "/folder0"), 0);
+	// 1. Normal, file, make a link next to it
+	ASSERT_EQ(fs_create(fs, "/file", FS_REGULAR), 0);
+	ASSERT_EQ(fs_link(fs, "/file", "/file1"), 0);
 
-// 	// 7. Error, dst exists
-// 	ASSERT_LT(fs_link(fs, "/file", "/file1"), 0);
+	// 2. Normal, directory, link next to it
+	ASSERT_EQ(fs_create(fs, "/folder", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_link(fs, "/folder", "/folder0"), 0);
 
-// 	// 8. Error, dst parent does not exist
-// 	ASSERT_LT(fs_link(fs, "/file", "/NOTEXISTFOLDER/file1"), 0);
+	// 7. Error, dst exists
+	ASSERT_LT(fs_link(fs, "/file", "/file1"), 0);
 
-// 	// 9. Error, dst parent full
-// 	ASSERT_EQ(fs_create(fs, "/folder1", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/1", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/2", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/3", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/4", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/5", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/6", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/7", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/8", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/9", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/10", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/11", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/12", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/13", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/14", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/15", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/16", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/17", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/18", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/19", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/20", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/21", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/22", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/23", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/24", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/25", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/26", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/27", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/28", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/29", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/30", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder1/31", FS_DIRECTORY), 0);
-// 	ASSERT_LT(fs_link(fs, "/file", "/folder1/file"), 0);
+	// 8. Error, dst parent does not exist
+	ASSERT_LT(fs_link(fs, "/file", "/NOTEXISTFOLDER/file1"), 0);
 
-// 	// 10. Error, src does not exist
-// 	ASSERT_LT(fs_link(fs, "/NOTEXIST", "/file2"), 0);
+	// 9. Error, dst parent full
+	ASSERT_EQ(fs_create(fs, "/folder1", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/1", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/2", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/3", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/4", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/5", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/6", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/7", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/8", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/9", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/10", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/11", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/12", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/13", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/14", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/15", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/16", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/17", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/18", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/19", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/20", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/21", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/22", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/23", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/24", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/25", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/26", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/27", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/28", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/29", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/30", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder1/31", FS_DIRECTORY), 0);
+	ASSERT_LT(fs_link(fs, "/file", "/folder1/file"), 0);
 
-// 	// 11. Error, FS null
-// 	ASSERT_LT(fs_link(nullptr, "/file", "/file2"), 0);
+	// 10. Error, src does not exist
+	ASSERT_LT(fs_link(fs, "/NOTEXIST", "/file2"), 0);
 
-// 	// 12. Error, src null
-// 	ASSERT_LT(fs_link(fs, nullptr, "/file2"), 0);
+	// 11. Error, FS null
+	ASSERT_LT(fs_link(nullptr, "/file", "/file2"), 0);
 
-// 	// 13. Error, dst null
-// 	ASSERT_LT(fs_link(fs, "file", nullptr), 0);
+	// 12. Error, src null
+	ASSERT_LT(fs_link(fs, nullptr, "/file2"), 0);
 
-// 	// 14. Error, dst root
-// 	ASSERT_LT(fs_link(fs, "file", "/"), 0);
+	// 13. Error, dst null
+	ASSERT_LT(fs_link(fs, "file", nullptr), 0);
 
-// 	//  3. Normal, OH BOY, directory will contain itself (check that /folder/itself/itself/itself/itself/with_file exists)
-// 	ASSERT_EQ(fs_create(fs, "/folder/itself", FS_DIRECTORY), 0);
-// 	ASSERT_EQ(fs_create(fs, "/folder/itself/with_file", FS_REGULAR), 0);
-// 	ASSERT_EQ(fs_link(fs, "/folder/itself", "/folder/itself/itself"), 0);
-// 	dyn_array_t * record_results = fs_get_dir(fs, "/folder/itself/itself/itself/itself");
-// 	ASSERT_NE(record_results, nullptr);
-// 	ASSERT_TRUE(find_in_directory(record_results, "with_file"));
-// 	dyn_array_destroy(record_results);
+	// 14. Error, dst root
+	ASSERT_LT(fs_link(fs, "file", "/"), 0);
 
-// 	//  4. Normal, file, write to hardlink, read the new data from fd to original file
-// 	int fd = fs_open(fs, "/file1"); // "/file1" is a hardlink of "/file"
-// 	ASSERT_GE(fd, 0);
-// 	uint8_t three[1024]      = {0};
-// 	uint8_t three_test[1024] = {0};
-// 	memset(three, 0x33, 1024);
-// 	ASSERT_EQ(fs_write(fs, fd, three, 1024), 1024);
-// 	ASSERT_EQ(fs_close(fs, fd), 0);
-// 	fd = fs_open(fs, "/file");
-// 	ASSERT_GE(fd, 0);
-// 	ASSERT_EQ(fs_read(fs, fd, three_test, 1024), 1024);
-// 	ASSERT_EQ(memcmp(three, three_test, 1024), 0);
-// 	ASSERT_EQ(fs_close(fs, fd), 0);
+	//  3. Normal, OH BOY, directory will contain itself (check that /folder/itself/itself/itself/itself/with_file exists)
+	ASSERT_EQ(fs_create(fs, "/folder/itself", FS_DIRECTORY), 0);
+	ASSERT_EQ(fs_create(fs, "/folder/itself/with_file", FS_REGULAR), 0);
+	ASSERT_EQ(fs_link(fs, "/folder/itself", "/folder/itself/itself"), 0);
+	dyn_array_t * record_results = fs_get_dir(fs, "/folder/itself/itself/itself/itself");
+	ASSERT_NE(record_results, nullptr);
+	ASSERT_TRUE(find_in_directory(record_results, "with_file"));
+	dyn_array_destroy(record_results);
+
+	//  4. Normal, file, write to hardlink, read the new data from fd to original file
+	int fd = fs_open(fs, "/file1"); // "/file1" is a hardlink of "/file"
+	ASSERT_GE(fd, 0);
+	uint8_t three[1024]      = {0};
+	uint8_t three_test[1024] = {0};
+	memset(three, 0x33, 1024);
+	ASSERT_EQ(fs_write(fs, fd, three, 1024), 1024);
+	ASSERT_EQ(fs_close(fs, fd), 0);
+	fd = fs_open(fs, "/file");
+	ASSERT_GE(fd, 0);
+	ASSERT_EQ(fs_read(fs, fd, three_test, 1024), 1024);
+	ASSERT_EQ(memcmp(three, three_test, 1024), 0);
+	ASSERT_EQ(fs_close(fs, fd), 0);
 
 
-// 	//  5. Normal, file, delete hardlinked file, make sure original still works
-// 	ASSERT_EQ(fs_remove(fs, "/file1"), 0);
-// 	fd = fs_open(fs, "/file");
-// 	ASSERT_GE(fd, 0);
-// 	memset(three_test, 0, 1024);
-// 	ASSERT_EQ(fs_read(fs, fd, three_test, 1024), 1024);
-// 	ASSERT_EQ(memcmp(three, three_test, 1024), 0);
-// 	ASSERT_EQ(fs_close(fs, fd), 0);
+	//  5. Normal, file, delete hardlinked file, make sure original still works
+	ASSERT_EQ(fs_remove(fs, "/file1"), 0);
+	fd = fs_open(fs, "/file");
+	ASSERT_GE(fd, 0);
+	memset(three_test, 0, 1024);
+	ASSERT_EQ(fs_read(fs, fd, three_test, 1024), 1024);
+	ASSERT_EQ(memcmp(three, three_test, 1024), 0);
+	ASSERT_EQ(fs_close(fs, fd), 0);
 
-// 	//  6. Normal, directory, delete a hardlink directory that has contents!
-// 	ASSERT_EQ(fs_link(fs, "/folder1", "/folder2"), 0); // "/folder1" is full dir
-// 	ASSERT_LT(fs_remove(fs, "/folder2"), 0);           // 不能被删除， hardlink 对应的是 inode， 不应删除空目录
+	//  6. Normal, directory, delete a hardlink directory that has contents!
+	ASSERT_EQ(fs_link(fs, "/folder1", "/folder2"), 0); // "/folder1" is full dir
+	ASSERT_LT(fs_remove(fs, "/folder2"), 0);           // 不能被删除， hardlink 对应的是 inode， 不应删除空目录
 
-// 	// Close fs
-// 	fs_unmount(fs);
-// 	score += 20;
-// }
+	// Close fs
+	fs_unmount(fs);
+	score += 20;
+}
 
 int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);

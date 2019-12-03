@@ -176,7 +176,8 @@ size_t getParentDirInodeID(F19FS_t* fs, char* parentPath) {
         bool isFound = false;
         for (size_t i = 0; i < NUM_OF_ENTRIES; i++) {
             // if current i entry is set and fileName equals to the given parentPath
-            if (bitmap_test(entry_bm, i) && strncmp((cur_dir_block + i)->filename, currentDir, strlen(currentDir)) == 0) {
+            size_t maxLength = strlen((cur_dir_block + i)->filename) >= strlen(currentDir) ? strlen((cur_dir_block + i)->filename) : strlen(currentDir);
+            if (bitmap_test(entry_bm, i) && strncmp((cur_dir_block + i)->filename, currentDir, maxLength) == 0) {
                 inode_t next_inode;
                 if (block_store_inode_read(fs->BlockStore_inode, (cur_dir_block + i)->inodeNumber, &next_inode) != 0 && next_inode.fileType == 'd') {
                     cur_inode_ID = next_inode.inodeNumber;
@@ -204,7 +205,8 @@ bool checkFileExist(F19FS_t* fs, size_t parentDirInodeID, char* fileName) {
     }
     bitmap_t* parentBM = bitmap_overlay(NUM_OF_ENTRIES, &(parentDirInode.vacantFile));
     for (size_t i = 0; i < NUM_OF_ENTRIES; i++) {
-        if (bitmap_test(parentBM, i) && strncmp((parentDir + i)->filename, fileName, strlen(fileName)) == 0) {
+        size_t maxLength = strlen((parentDir + i)->filename) >= strlen(fileName) ? strlen((parentDir + i)->filename) : strlen(fileName); 
+        if (bitmap_test(parentBM, i) && strncmp((parentDir + i)->filename, fileName, maxLength) == 0) {
             bitmap_destroy(parentBM);
             return true;
         }
@@ -222,7 +224,8 @@ size_t getFileInodeID(F19FS_t* fs, size_t parentDirInodeID, char* fileName) {
     }
     bitmap_t* parentBM = bitmap_overlay(NUM_OF_ENTRIES, &(parentDirInode.vacantFile));
     for (size_t i = 0; i < NUM_OF_ENTRIES; i++) {
-        if (bitmap_test(parentBM, i) && strncmp((parentDir + i)->filename, fileName, strlen(fileName)) == 0) {
+        size_t maxLength = strlen((parentDir + i)->filename) >= strlen(fileName) ? strlen((parentDir + i)->filename) : strlen(fileName); 
+        if (bitmap_test(parentBM, i) && strncmp((parentDir + i)->filename, fileName, maxLength) == 0) {
             bitmap_destroy(parentBM);
             return (parentDir + i)->inodeNumber;
         }
@@ -338,6 +341,122 @@ int fs_unmount(F19FS_t *fs) {
     return -1;
 }
 
+directoryFile_t* init_db(){
+	directoryFile_t* current = calloc(1, BLOCK_SIZE_BYTES);
+
+	for (size_t i = 0; i < NUM_OF_ENTRIES; i++){
+        (current + i)->inodeNumber = 0;
+        memset((current + i)->filename, '\0', FS_FNAME_MAX);
+	}
+	return current;
+}
+
+
+int fs_create2(F19FS_t *fs, const char *path, file_t type) {
+    if (!fs || !path || strlen(path) == 0 || !(type == FS_REGULAR || type == FS_DIRECTORY)) {
+        return -1;
+    }
+    if (strlen(path) <= 1) {
+        // "/" condition
+        return -2;
+    }
+    if (block_store_get_free_blocks(fs->BlockStore_inode) == 0) {
+        // if no avaliable inode spot
+        return -3;
+    }
+    if (!isValidPath(path)) {
+        return -4;
+    }
+    char prefix[strlen(path) + 1];
+    strcpy(prefix, path);
+    char* dirPath = dirname(prefix);
+
+    char suffix[strlen(path) + 1];
+    strcpy(suffix, path);
+    char* fileName = basename(suffix);
+    
+    if (strlen(fileName) >= FS_FNAME_MAX) {
+        return -5;
+    }
+
+    size_t parentDirInodeID = getParentDirInodeID(fs, dirPath);
+    if (parentDirInodeID == SIZE_MAX) {
+        return -6;
+    }
+    if (checkFileExist(fs, parentDirInodeID, fileName)) {
+        return -7;
+    }
+    inode_t parentDirInode;
+    directoryFile_t* parentDir = calloc(1, BLOCK_SIZE_BYTES);
+    if (block_store_inode_read(fs->BlockStore_inode, parentDirInodeID, &parentDirInode) == 0 || block_store_read(fs->BlockStore_whole, parentDirInode.directPointer[0], parentDir) == 0) {
+        free(parentDir);
+        return -8;
+    }
+    bitmap_t* entry_bm = bitmap_overlay(NUM_OF_ENTRIES, &(parentDirInode.vacantFile));
+    size_t total_set = bitmap_total_set(entry_bm);
+    if (total_set == NUM_OF_ENTRIES) {
+        bitmap_destroy(entry_bm);
+        free(parentDir);
+        return -9;
+    }
+    size_t next_entry = bitmap_ffz(entry_bm);
+    bitmap_set(entry_bm, next_entry);
+    bitmap_destroy(entry_bm);
+
+    size_t fileInodeID = block_store_allocate(fs->BlockStore_inode);
+    inode_t fileInode;
+
+    fileInode.linkCount = 1;
+    fileInode.inodeNumber = fileInodeID;
+    // printf("new inodeID: %lu\n", fileInodeID);
+
+    if (type == FS_DIRECTORY) {
+        fileInode.vacantFile = 0x00000000;
+        char* owner = "root";
+        strncpy(fileInode.owner, owner, strlen(owner));
+        fileInode.fileType = 'd';						
+
+        size_t first_free_blocks = block_store_allocate(fs->BlockStore_whole); 
+        if (first_free_blocks == SIZE_MAX) {
+            free(parentDir);
+            return -10;
+        }
+        fileInode.directPointer[0] = first_free_blocks;
+        directoryFile_t* newDB = init_db();
+        block_store_write(fs->BlockStore_whole, first_free_blocks, newDB);
+        free(newDB);
+        fileInode.fileSize = BLOCK_SIZE_BYTES;
+    }
+    if (type == FS_REGULAR) {
+        fileInode.fileSize = 0;
+        fileInode.fileType = 'r';
+        for (size_t i = 0; i < NUM_DIRECT_PTR; i++) {
+            fileInode.directPointer[i] = 0x0000;
+        }
+        fileInode.indirectPointer[0] = 0x0000;
+        fileInode.doubleIndirectPointer = 0x0000;
+    }
+    // printf("inodeID: %lu\n", fileInodeID);
+    if (block_store_inode_write(fs->BlockStore_inode, fileInodeID, &fileInode) != inode_size) {
+        free(parentDir);
+        return -11;
+    }
+    // we have change the parentInode's entry, so rewrite it
+    if (block_store_inode_write(fs->BlockStore_inode, parentDirInodeID, &parentDirInode) != inode_size) {
+        free(parentDir);
+        return -12;
+    }
+
+    strcpy((parentDir + next_entry)->filename, fileName);
+    (parentDir + next_entry)->inodeNumber = fileInodeID;
+
+    if (block_store_write(fs->BlockStore_whole, parentDirInode.directPointer[0], parentDir) != BLOCK_SIZE_BYTES) {
+        return -13;
+        free(parentDir);
+    }
+    free(parentDir);
+    return 0;
+}
 
 ///
 /// Creates a new file at the specified location
@@ -466,7 +585,7 @@ int fs_create(F19FS_t *fs, const char *path, file_t type) {
 
             if(k < folder_number_entries)	// k == folder_number_entries means this directory is full
             {
-                size_t child_inode_ID = block_store_sub_allocate(fs->BlockStore_inode);
+                size_t child_inode_ID = block_store_allocate(fs->BlockStore_inode);
                 // printf("new child_inode_ID = %zu\n", child_inode_ID);
                 // ugh, inodes are used up
                 if(child_inode_ID == SIZE_MAX)
@@ -511,6 +630,7 @@ int fs_create(F19FS_t *fs, const char *path, file_t type) {
                 }	
 
                 child_inode->inodeNumber = child_inode_ID;
+                // printf("new_inode: %lu\n", child_inode_ID);
                 child_inode->fileSize = 0;
                 child_inode->linkCount = 1;
                 block_store_inode_write(fs->BlockStore_inode, child_inode_ID, child_inode);
@@ -1121,6 +1241,11 @@ int fs_remove(F19FS_t *fs, const char *path) {
     }
 
     if (fileInode->fileType == 'r') {
+        if (fileInode->linkCount > 1) {
+            fileInode->linkCount -= 1;
+            block_store_inode_write(fs->BlockStore_inode, fileInodeID, fileInode);
+            return 0;
+        }
         // delete all the file block
         for(int i = 0; i< NUM_DIRECT_PTR; i++){
             if(fileInode->directPointer[i] != 0){
@@ -1408,71 +1533,280 @@ ssize_t fs_read(F19FS_t *fs, int fd, void *dst, size_t nbyte) {
     return sumOfReadByte;
 }
 
-// int fs_move(F19FS_t *fs, const char *src, const char *dst) {
-//     if (!fs || !src || !dst) {
-//         return -1;
-//     }
-//     if (strlen(src) <= 1 || strlen(dst) <= 1) {
-//         // "/" condition
-//         return -2;
-//     }
-//     if (!isValidPath(src)) {
-//         return -3;
-//     }
-//     if (!isValidPath(dst)) {
-//         return -4;
-//     }
-//     if (strlen(src) == strlen(dst) && strncmp(src, dst, strlen(dst))) {
-//         return -11;
-//     }
+int fs_move(F19FS_t *fs, const char *src, const char *dst) {
+    if (!fs || !src || !dst) {
+        return -1;
+    }
+    if (strlen(src) <= 1 || strlen(dst) <= 1) {
+        // "/" condition
+        return -2;
+    }
+    if (!isValidPath(src)) {
+        return -3;
+    }
+    if (!isValidPath(dst)) {
+        return -4;
+    }
+    if (strlen(src) == strlen(dst) && strncmp(src, dst, strlen(dst))) {
+        return -11;
+    }
 
-//     char src_prefix[strlen(src) + 1];
-//     strcpy(src_prefix, src);
-//     char* src_dirPath = dirname(src_prefix);
+    // printf("src: %s, dst: %s\n", src, dst);
 
-//     char src_suffix[strlen(src) + 1];
-//     strcpy(src_suffix, src);
-//     char* src_fileName = basename(src_suffix);
+    char src_prefix[strlen(src) + 1];
+    strcpy(src_prefix, src);
+    char* src_dirPath = dirname(src_prefix);
+
+    char src_suffix[strlen(src) + 1];
+    strcpy(src_suffix, src);
+    char* src_fileName = basename(src_suffix);
+
+    // printf("src_path: %s, src_fileName: %s\n", src_dirPath, src_fileName);
     
-//     if (strlen(src_fileName) >= FS_FNAME_MAX) {
-//         return -5;
-//     }
+    if (strlen(src_fileName) >= FS_FNAME_MAX) {
+        return -5;
+    }
 
-//     char dst_prefix[strlen(dst) + 1];
-//     strcpy(dst_prefix, dst);
-//     char* dst_dirPath = dirname(dst_prefix);
+    char dst_prefix[strlen(dst) + 1];
+    strcpy(dst_prefix, dst);
+    char* dst_dirPath = dirname(dst_prefix);
 
-//     char dst_suffix[strlen(dst) + 1];
-//     strcpy(dst_suffix, dst);
-//     char* dst_fileName = basename(dst_suffix);
+    char dst_suffix[strlen(dst) + 1];
+    strcpy(dst_suffix, dst);
+    char* dst_fileName = basename(dst_suffix);
+
+    // printf("dst_path: %s, dst_fileName: %s\n", dst_dirPath, dst_fileName);
     
-//     if (strlen(dst_fileName) >= FS_FNAME_MAX) {
-//         return -6;
-//     }
+    if (strlen(dst_fileName) >= FS_FNAME_MAX) {
+        return -6;
+    }
 
-//     size_t src_parentDirInodeID = getParentDirInodeID(fs, src_dirPath);
-//     if (src_parentDirInodeID == SIZE_MAX) {
-//         return -7;
-//     }
-//     if (!checkFileExist(fs, src_parentDirInodeID, src_fileName)) {
-//         return -8;
-//     }
+    // condition 1: src: /folder, dst: /folder/oh_no => move folder into folder
+    char * dst_test = malloc(sizeof(char) * (strlen(dst_dirPath) + 1));
+    strcpy(dst_test, dst_dirPath);
+    char* token = strtok(dst_test, "/");
+    while (token) {
+        if (strncmp(src_fileName, token, strlen(src_fileName)) == 0) {
+            // printf("conditon 1 applied\n");
+            return -14;
+        }
+        token = strtok(NULL, "/");
+    }
 
-//     size_t dst_parentDirInodeID = getParentDirInodeID(fs, dst_dirPath);
-//     if (dst_parentDirInodeID == SIZE_MAX) {
-//         return -9;
-//     }
-//     if (checkFileExist(fs, dst_parentDirInodeID, dst_fileName)) {
-//         return -10;
-//     }
+    size_t src_parentDirInodeID = getParentDirInodeID(fs, src_dirPath);
+    if (src_parentDirInodeID == SIZE_MAX) {
+        return -7;
+    }
 
-//     // check dst parent full
-//     inode_t dst_parentDirInode;
-//     block_store_inode_read(fs->BlockStore_inode, dst_parentDirInodeID, &dst_parentDirInode);
-//     bitmap_t* parentBM = bitmap_overlay(NUM_OF_ENTRIES, &(dst_parentDirInode.vacantFile));
-//     if (bitmap_total_set(parentBM) == NUM_OF_ENTRIES) {
-//         return -11;
-//     }
-// }
+    if (!checkFileExist(fs, src_parentDirInodeID, src_fileName)) {
+        return -8;
+    }
+    // printf("src_path: %s, src_parentDirInodeID: %lu\n", src_dirPath, src_parentDirInodeID);
+
+    size_t dst_parentDirInodeID = getParentDirInodeID(fs, dst_dirPath);
+    if (dst_parentDirInodeID == SIZE_MAX) {
+        return -9;
+    }
+    // printf("dst_path: %s, dst_parentDirInodeID: %lu\n", dst_dirPath, dst_parentDirInodeID);
+    // if dst directory exist, return the 
+    if (!checkFileExist(fs, dst_parentDirInodeID, dst_fileName)) {
+        if (0 != fs_create2(fs, dst, FS_DIRECTORY)) {
+            return -10;
+        }
+        // printf("create a new directory %s.\n", dst_fileName);
+    }
+
+    inode_t src_parentDirInode;
+    block_store_inode_read(fs->BlockStore_inode, src_parentDirInodeID, &src_parentDirInode);
+
+    inode_t dst_parentDirInode;
+    block_store_inode_read(fs->BlockStore_inode, dst_parentDirInodeID, &dst_parentDirInode);
+
+    size_t src_fileInodeId = getFileInodeID(fs, src_parentDirInodeID, src_fileName);
+    if (src_fileInodeId == SIZE_MAX) {
+        return -11;
+    }
+    // printf("src_filename: %s, src_fileInodeID: %lu\n", src_fileName, src_fileInodeId);
+
+    size_t dst_fileInodeId = getFileInodeID(fs, dst_parentDirInodeID, dst_fileName);
+    if (dst_fileInodeId == SIZE_MAX) {
+        return -12;
+    }
+
+    // printf("dst_filename: %s, dst_fileInodeID: %lu\n", dst_fileName, dst_fileInodeId);
+
+    inode_t src_fileInode;
+    block_store_inode_read(fs->BlockStore_inode, src_fileInodeId, &src_fileInode);
+
+    inode_t dst_fileInode;
+    block_store_inode_read(fs->BlockStore_inode, dst_fileInodeId, &dst_fileInode);
+
+    // condition 2: src: /folder/file1  dst: folder => in same folder, do nothing
+    if (src_parentDirInodeID == dst_fileInodeId) {
+        return -14;
+    }
+
+    // condition 3: src: /folder/with_folder dst: /folder2
+    directoryFile_t* src_dir_block = (directoryFile_t *)calloc(1, BLOCK_SIZE_BYTES);
+    block_store_read(fs->BlockStore_whole, src_parentDirInode.directPointer[0], src_dir_block);
+
+
+    int src_fileIndex = getFileIndexInDir(&src_parentDirInode, src_dir_block, src_fileName);
+    if (src_fileIndex == -1) {
+        return -13;
+    }
+    // remove the directory File Entry
+    (src_dir_block + src_fileIndex)->inodeNumber = 0;
+    memset((src_dir_block + src_fileIndex)->filename, '\0', FS_FNAME_MAX);
+    block_store_write(fs->BlockStore_whole, src_parentDirInode.directPointer[0], src_dir_block);
+    free(src_dir_block);
+
+    // update the src directory inode
+    bitmap_t* parentBM = bitmap_overlay(NUM_OF_ENTRIES, &(src_parentDirInode.vacantFile));
+    bitmap_reset(parentBM, src_fileIndex);
+    bitmap_destroy(parentBM);
+    block_store_inode_write(fs->BlockStore_inode, src_parentDirInodeID, &src_parentDirInode);
+
+    //get the dst directory file block
+    directoryFile_t* dst_dir_block = (directoryFile_t *)calloc(1, BLOCK_SIZE_BYTES);
+    block_store_read(fs->BlockStore_whole, dst_fileInode.directPointer[0], dst_dir_block);
+    
+    // update the dst directory file block
+    bitmap_t* dst_file_BM = bitmap_overlay(NUM_OF_ENTRIES, &(dst_fileInode.vacantFile));
+    size_t location = bitmap_ffz(dst_file_BM);
+    (dst_dir_block + location)->inodeNumber = src_fileInodeId;
+    strncpy((dst_dir_block + location)->filename, src_fileName, strlen(src_fileName));
+    bitmap_destroy(dst_file_BM);
+    block_store_write(fs->BlockStore_whole, dst_fileInode.directPointer[0], dst_dir_block);
+    free(dst_dir_block);
+    // printf("-----------------\n");
+    return 0;
+}
+
+// 
+int fs_link(F19FS_t *fs, const char *src, const char *dst) {
+    if (!fs || !src || !dst) {
+        return -1;
+    }
+    if (strlen(src) <= 1 || strlen(dst) <= 1) {
+        // "/" condition
+        return -2;
+    }
+    if (!isValidPath(src)) {
+        return -3;
+    }
+    if (!isValidPath(dst)) {
+        return -4;
+    }
+    if (strlen(dst) == 1 && strcmp(dst, "/") == 0) {
+        return -11;
+    }
+
+    // printf("src: %s, dst: %s\n", src, dst);
+
+    char src_prefix[strlen(src) + 1];
+    strcpy(src_prefix, src);
+    char* src_dirPath = dirname(src_prefix);
+
+    char src_suffix[strlen(src) + 1];
+    strcpy(src_suffix, src);
+    char* src_fileName = basename(src_suffix);
+
+    // printf("src_path: %s, src_fileName: %s\n", src_dirPath, src_fileName);
+    
+    if (strlen(src_fileName) >= FS_FNAME_MAX) {
+        return -5;
+    }
+
+    char dst_prefix[strlen(dst) + 1];
+    strcpy(dst_prefix, dst);
+    char* dst_dirPath = dirname(dst_prefix);
+
+    char dst_suffix[strlen(dst) + 1];
+    strcpy(dst_suffix, dst);
+    char* dst_fileName = basename(dst_suffix);
+
+    // printf("dst_path: %s, dst_fileName: %s\n", dst_dirPath, dst_fileName);
+    
+    if (strlen(dst_fileName) >= FS_FNAME_MAX) {
+        return -6;
+    }
+
+    size_t src_parentDirInodeID = getParentDirInodeID(fs, src_dirPath);
+    if (src_parentDirInodeID == SIZE_MAX) {
+        return -7;
+    }
+
+    if (!checkFileExist(fs, src_parentDirInodeID, src_fileName)) {
+        return -8;
+    }
+    // printf("src_path: %s, src_parentDirInodeID: %lu\n", src_dirPath, src_parentDirInodeID);
+
+    size_t dst_parentDirInodeID = getParentDirInodeID(fs, dst_dirPath);
+    if (dst_parentDirInodeID == SIZE_MAX) {
+        return -9;
+    }
+    if (checkFileExist(fs, dst_parentDirInodeID, dst_fileName)) {
+        return -10;
+    }
+    // printf("dst_path: %s, dst_parentDirInodeID: %lu\n", dst_dirPath, dst_parentDirInodeID);
+
+    inode_t src_parentDirInode;
+    block_store_inode_read(fs->BlockStore_inode, src_parentDirInodeID, &src_parentDirInode);
+
+    inode_t dst_parentDirInode;
+    block_store_inode_read(fs->BlockStore_inode, dst_parentDirInodeID, &dst_parentDirInode);
+
+    directoryFile_t* dst_directoryFile = calloc(1, BLOCK_SIZE_BYTES);
+    block_store_read(fs->BlockStore_whole, dst_parentDirInode.directPointer[0], dst_directoryFile);
+    bitmap_t* dirBM = bitmap_overlay(NUM_OF_ENTRIES, &(dst_parentDirInode.vacantFile));
+    if (bitmap_total_set(dirBM) == NUM_OF_ENTRIES) {
+        return -13;
+    }
+    bitmap_destroy(dirBM);
+
+    size_t src_fileInodeId = getFileInodeID(fs, src_parentDirInodeID, src_fileName);
+    if (src_fileInodeId == SIZE_MAX) {
+        return -11;
+    }
+    // printf("src_filename: %s, src_fileInodeID: %lu\n", src_fileName, src_fileInodeId);
+
+    size_t dst_fileInodeId = getFileInodeID(fs, dst_parentDirInodeID, dst_fileName);
+    if (dst_fileInodeId == SIZE_MAX) {
+        return -12;
+    }
+
+    // printf("dst_filename: %s, dst_fileInodeID: %lu\n", dst_fileName, dst_fileInodeId);
+
+    inode_t src_fileInode;
+    block_store_inode_read(fs->BlockStore_inode, src_fileInodeId, &src_fileInode);
+
+    if (src_fileInode.linkCount >= 255) {
+        return -14;
+    }
+
+    inode_t dst_fileInode;
+    block_store_inode_read(fs->BlockStore_inode, dst_fileInodeId, &dst_fileInode);
+
+    bitmap_t* dst_dirBM = bitmap_overlay(NUM_OF_ENTRIES, &(dst_parentDirInode.vacantFile));
+    size_t index = bitmap_ffz(dst_dirBM);
+    bitmap_set(dst_dirBM, index);
+    bitmap_destroy(dst_dirBM);
+
+    (dst_directoryFile + index)->inodeNumber = src_fileInodeId;
+    strncpy((dst_directoryFile + index)->filename, dst_fileName, FS_FNAME_MAX);
+
+    src_fileInode.linkCount += 1;
+    if (src_fileInodeId == dst_parentDirInodeID) {
+        src_fileInode.linkCount += 1;
+    }
+
+    block_store_inode_write(fs->BlockStore_inode, src_fileInodeId, &src_fileInode);
+    block_store_inode_write(fs->BlockStore_inode, dst_parentDirInodeID, &dst_parentDirInode);
+    block_store_write(fs->BlockStore_whole, dst_parentDirInode.directPointer[0], dst_directoryFile);
+
+    free(dst_directoryFile);
+    return 0;
+}
 
 
